@@ -1,0 +1,99 @@
+<style>
+  /* Base Styles */
+  body {
+    font-family: 'Prompt', sans-serif;
+  }
+  
+  /* Loading Overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+  }
+  
+  .loading-overlay.hidden {
+    display: none !important;
+  }
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3b82f6; /* Tailwind blue-500 */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* AdminLTE adjustments for Tailwind */
+  .layout-fixed .wrapper .sidebar {
+    height: calc(100vh - (3.5rem + 1px));
+  }
+  
+  .content-wrapper {
+    min-height: calc(100vh - calc(3.5rem + 1px));
+  }
+
+  /* Print Styles */
+  @media print {
+    body {
+      background-color: white !important;
+    }
+    .wrapper {
+      background-color: white !important;
+    }
+    .main-header, .main-sidebar, .no-print {
+      display: none !important;
+    }
+    .content-wrapper {
+      margin-left: 0 !important;
+      padding: 0 !important;
+      background-color: white !important;
+    }
+    .print-area {
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    .card {
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .table-bordered th, .table-bordered td {
+      border: 1px solid #ddd !important;
+    }
+  }
+
+  /* Hide views smoothly */
+  .page-view {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+
+  /* Form enhancements */
+  .form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+  }
+</style>

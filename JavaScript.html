@@ -1,0 +1,614 @@
+<script>
+  let currentUser = null;
+  let chartInstance = null;
+  let negativeChartInstance = null;
+
+  // ==================== INITIALIZATION ====================
+  $(document).ready(function() {
+    // Check local storage for login state
+    const savedUser = localStorage.getItem('behaviorSystemUser');
+    if (savedUser) {
+      currentUser = JSON.parse(savedUser);
+      $('#currentTeacherName').text(currentUser.name);
+      showApp();
+    }
+  });
+
+  // ==================== UI HELPERS ====================
+  function showLoading() {
+    $('#loadingOverlay').removeClass('hidden');
+  }
+
+  function hideLoading() {
+    $('#loadingOverlay').addClass('hidden');
+  }
+
+  function showView(viewId) {
+    // Hide all views
+    $('.page-view').addClass('hidden');
+    // Remove active class from nav
+    $('.nav-link').removeClass('active');
+    
+    // Show selected view
+    $('#view-' + viewId).removeClass('hidden');
+    $('#nav-' + viewId).addClass('active');
+
+    // Load data based on view
+    if (viewId === 'dashboard') loadDashboard();
+    else if (viewId === 'students') loadStudents();
+    else if (viewId === 'users') loadUsers();
+    
+    // Reset specific forms/views
+    if (viewId === 'behaviors') {
+      $('#behaviorForm')[0].reset();
+      // Set default teacher name to current user
+      $('#b_teacherName').val(currentUser.name);
+    }
+    if (viewId === 'reports') {
+      $('#reportContainer').addClass('hidden');
+      $('#report_studentId').val('');
+    }
+  }
+
+  function showApp() {
+    $('#login-view').addClass('hidden');
+    $('#body-main').removeClass('login-page').addClass('sidebar-mini layout-fixed');
+    $('#app-view').removeClass('hidden');
+    showView('dashboard');
+  }
+
+  function logout() {
+    Swal.fire({
+      title: 'ยืนยันการออกจากระบบ?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('behaviorSystemUser');
+        currentUser = null;
+        $('#app-view').addClass('hidden');
+        $('#body-main').removeClass('sidebar-mini layout-fixed').addClass('login-page');
+        $('#login-view').removeClass('hidden');
+        $('#loginForm')[0].reset();
+      }
+    });
+  }
+
+  // ==================== LOGIN ====================
+  function handleLogin(e) {
+    e.preventDefault();
+    const username = $('#username').val();
+    const password = $('#password').val();
+
+    showLoading();
+    // Simulate GAS call or call actual GAS
+    if (typeof google !== 'undefined') {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          if (res.success) {
+            currentUser = res.user;
+            localStorage.setItem('behaviorSystemUser', JSON.stringify(currentUser));
+            $('#currentTeacherName').text(currentUser.name);
+            showApp();
+            Swal.fire('สำเร็จ', 'เข้าสู่ระบบเรียบร้อยแล้ว', 'success');
+          } else {
+            Swal.fire('ข้อผิดพลาด', res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้: ' + err.message, 'error');
+        })
+        .login(username, password);
+    } else {
+      // For local testing
+      hideLoading();
+      if(username === 'admin' && password === 'admin') {
+        currentUser = { id: '1', name: 'แอดมิน ระบบ', username: 'admin' };
+        localStorage.setItem('behaviorSystemUser', JSON.stringify(currentUser));
+        $('#currentTeacherName').text(currentUser.name);
+        showApp();
+      } else {
+        Swal.fire('ข้อผิดพลาด', 'รหัสผ่านไม่ถูกต้อง (ทดสอบ: admin/admin)', 'error');
+      }
+    }
+  }
+
+  // ==================== DASHBOARD ====================
+  function loadDashboard() {
+    showLoading();
+    if (typeof google !== 'undefined') {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          if(res.success) {
+            renderDashboard(res);
+          } else {
+            Swal.fire('แจ้งเตือน', res.message, 'warning');
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        })
+        .getDashboardData();
+    } else {
+      hideLoading();
+      // Mock data for local testing
+      renderDashboard({
+        totalStudents: 150,
+        stats: { light: 10, medium: 5, severe: 2, good: 45 },
+        recentLogs: [
+          { date: '06/06/2026 10:00', studentId: '1001', studentName: 'ด.ช. สมชาย', type: 'ทำดี', details: 'ช่วยครูยกของ', scoreChange: 5, teacherName: 'ครูสมศรี' }
+        ],
+        chartData: { labels: ['1/6', '2/6', '3/6', '4/6', '5/6', '6/6', '7/6'], goodScores: [2,4,1,5,3,6,2], badScores: [1,0,2,1,0,1,0] },
+        topNegativeStudents: [
+          { studentId: '1003', name: 'ด.ช. เกเร วิ่งวุ่น', class: 'ม.1/2', totalScore: 80 },
+          { studentId: '1004', name: 'ด.ช. แย่จัง โดนหัก', class: 'ม.1/1', totalScore: 85 }
+        ]
+      });
+    }
+  }
+
+  function renderDashboard(data) {
+    // Top Stats
+    $('#statTotalStudents').text(data.totalStudents);
+    $('#statLight').text(data.stats.light);
+    $('#statMedium').text(data.stats.medium);
+    $('#statSevere').text(data.stats.severe);
+
+    // Recent Logs Table
+    let logsHtml = '';
+    data.recentLogs.forEach(log => {
+      let badgeClass = 'badge-secondary';
+      if(log.type === 'ทำดี') badgeClass = 'badge-success';
+      else if(log.type === 'ผิดขั้นเบา') badgeClass = 'badge-warning';
+      else if(log.type === 'ผิดขั้นปานกลาง') badgeClass = 'badge-orange';
+      else if(log.type === 'ผิดขั้นร้ายแรง') badgeClass = 'badge-danger';
+      
+      let scoreText = log.scoreChange > 0 ? `<span class="text-success">+${log.scoreChange}</span>` : `<span class="text-danger">${log.scoreChange}</span>`;
+      
+      logsHtml += `
+        <tr>
+          <td>${log.date}</td>
+          <td>${log.studentId}</td>
+          <td>${log.studentName}</td>
+          <td><span class="badge ${badgeClass}">${log.type}</span></td>
+          <td>${log.details}</td>
+          <td class="font-bold">${scoreText}</td>
+          <td>${log.teacherName}</td>
+        </tr>
+      `;
+    });
+    if(data.recentLogs.length === 0) logsHtml = '<tr><td colspan="7" class="text-center">ไม่มีข้อมูล</td></tr>';
+    $('#recentLogsTable').html(logsHtml);
+
+    // Chart.js
+    if (chartInstance) chartInstance.destroy();
+    const ctx = document.getElementById('behaviorChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.chartData.labels,
+        datasets: [
+          {
+            label: 'การทำความดี (ครั้ง)',
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            borderColor: 'rgba(34, 197, 94, 1)',
+            data: data.chartData.goodScores,
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'ผิดระเบียบ (ครั้ง)',
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            borderColor: 'rgba(239, 68, 68, 1)',
+            data: data.chartData.badScores,
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1 } }
+        }
+      }
+    });
+
+    // Top Negative Students Chart
+    if (negativeChartInstance) negativeChartInstance.destroy();
+    const ctxNegative = document.getElementById('negativeStudentsChart').getContext('2d');
+    
+    // Use part of name if too long
+    const negativeLabels = data.topNegativeStudents.map(s => {
+      let parts = s.name.split(' ');
+      return parts.length > 1 && parts[0].includes('ด.') ? parts[1] : parts[0];
+    });
+    const negativeData = data.topNegativeStudents.map(s => s.totalScore);
+    
+    negativeChartInstance = new Chart(ctxNegative, {
+      type: 'bar',
+      data: {
+        labels: negativeLabels,
+        datasets: [{
+          label: 'คะแนนพฤติกรรม',
+          backgroundColor: 'rgba(239, 68, 68, 0.8)',
+          data: negativeData
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            suggestedMin: 0,
+            suggestedMax: 100
+          }
+        }
+      }
+    });
+  }
+
+  // ==================== STUDENTS ====================
+  function loadStudents() {
+    showLoading();
+    if (typeof google !== 'undefined') {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          renderStudents(res);
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        })
+        .getStudents();
+    } else {
+      hideLoading();
+      renderStudents([{id: '1', studentId: '1001', name: 'สมชาย', class: 'ม.1/1', totalScore: 105}]);
+    }
+  }
+
+  function renderStudents(students) {
+    let html = '';
+    students.forEach(s => {
+      html += `
+        <tr>
+          <td>${s.studentId}</td>
+          <td>${s.name}</td>
+          <td>${s.class}</td>
+          <td class="font-bold ${s.totalScore >= 100 ? 'text-green-600' : 'text-red-600'}">${s.totalScore}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-info text-white mr-1 rounded" onclick='editStudent(${JSON.stringify(s)})'><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-danger rounded" onclick="deleteStudent('${s.id}')"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>
+      `;
+    });
+    if(students.length === 0) html = '<tr><td colspan="5" class="text-center">ไม่มีข้อมูลนักเรียน</td></tr>';
+    $('#studentsTableBody').html(html);
+  }
+
+  function openAddStudentModal() {
+    $('#studentForm')[0].reset();
+    $('#s_id').val('');
+    $('#studentModalTitle').text('เพิ่มข้อมูลนักเรียน');
+    $('#studentModal').modal('show');
+  }
+
+  function editStudent(student) {
+    $('#s_id').val(student.id);
+    $('#s_studentId').val(student.studentId);
+    $('#s_name').val(student.name);
+    $('#s_class').val(student.class);
+    $('#studentModalTitle').text('แก้ไขข้อมูลนักเรียน');
+    $('#studentModal').modal('show');
+  }
+
+  function saveStudent(e) {
+    e.preventDefault();
+    const student = {
+      id: $('#s_id').val(),
+      studentId: $('#s_studentId').val(),
+      name: $('#s_name').val(),
+      class: $('#s_class').val()
+    };
+
+    $('#studentModal').modal('hide');
+    showLoading();
+
+    if (typeof google !== 'undefined') {
+      const action = student.id ? 'updateStudent' : 'addStudent';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if(res.success) {
+            Swal.fire('สำเร็จ', res.message, 'success');
+            loadStudents();
+          } else {
+            hideLoading();
+            Swal.fire('ข้อผิดพลาด', res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        })
+        [action](student);
+    } else {
+      hideLoading();
+      Swal.fire('สำเร็จ', 'บันทึกเรียบร้อย (โหมดทดสอบ)', 'success');
+    }
+  }
+
+  function deleteStudent(id) {
+    Swal.fire({
+      title: 'ลบข้อมูลนักเรียน?',
+      text: "คุณจะไม่สามารถกู้คืนข้อมูลได้",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ลบเลย',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        showLoading();
+        if (typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if(res.success) {
+                Swal.fire('สำเร็จ', res.message, 'success');
+                loadStudents();
+              } else {
+                hideLoading();
+                Swal.fire('ข้อผิดพลาด', res.message, 'error');
+              }
+            })
+            .withFailureHandler(function(err) {
+              hideLoading();
+              Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            })
+            .deleteStudent(id);
+        } else {
+          hideLoading();
+          Swal.fire('สำเร็จ', 'ลบสำเร็จ (โหมดทดสอบ)', 'success');
+        }
+      }
+    });
+  }
+
+  // ==================== BEHAVIORS ====================
+  function submitBehavior(e) {
+    e.preventDefault();
+    
+    const behavior = {
+      studentId: $('#b_studentId').val(),
+      type: $('#b_type').val(),
+      scoreChange: $('#b_scoreChange').val(),
+      details: $('#b_details').val(),
+      teacherName: currentUser ? currentUser.name : 'Unknown'
+    };
+
+    Swal.fire({
+      title: 'ยืนยันการบันทึก?',
+      text: `คุณกำลังบันทึกพฤติกรรม: ${behavior.type} คะแนน: ${behavior.scoreChange}`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        showLoading();
+        if (typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              hideLoading();
+              if(res.success) {
+                Swal.fire('สำเร็จ', res.message, 'success');
+                $('#behaviorForm')[0].reset();
+              } else {
+                Swal.fire('ข้อผิดพลาด', res.message, 'error');
+              }
+            })
+            .withFailureHandler(function(err) {
+              hideLoading();
+              Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            })
+            .addBehavior(behavior);
+        } else {
+          hideLoading();
+          Swal.fire('สำเร็จ', 'บันทึกสำเร็จ (โหมดทดสอบ)', 'success');
+          $('#behaviorForm')[0].reset();
+        }
+      }
+    });
+  }
+
+  // ==================== REPORTS ====================
+  function searchReport() {
+    const studentId = $('#report_studentId').val();
+    if(!studentId) {
+      Swal.fire('แจ้งเตือน', 'กรุณากรอกรหัสนักเรียน', 'warning');
+      return;
+    }
+
+    showLoading();
+    if (typeof google !== 'undefined') {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          if(res.success) {
+            renderReport(res);
+          } else {
+            $('#reportContainer').addClass('hidden');
+            Swal.fire('ไม่พบข้อมูล', res.message, 'warning');
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        })
+        .getStudentReport(studentId);
+    } else {
+      hideLoading();
+      // Mock data
+      renderReport({
+        student: { studentId: studentId, name: 'สมชาย', class: 'ม.1/1', totalScore: 90 },
+        history: [
+          { date: '06/06/2026 10:00', type: 'ผิดขั้นเบา', details: 'มาสาย', scoreChange: -5, teacherName: 'ครูสมศรี' }
+        ]
+      });
+    }
+  }
+
+  function renderReport(data) {
+    $('#reportContainer').removeClass('hidden');
+    
+    // Header Info
+    $('#r_studentId').text(data.student.studentId);
+    $('#r_studentName').text(data.student.name);
+    $('#r_studentClass').text(data.student.class);
+    
+    let scoreClass = data.student.totalScore >= 100 ? 'text-green-600' : (data.student.totalScore >= 80 ? 'text-yellow-600' : 'text-red-600');
+    $('#r_studentScore').html(`<span class="${scoreClass}">${data.student.totalScore}</span>`);
+
+    // History Table
+    let html = '';
+    data.history.forEach(h => {
+      let scoreText = h.scoreChange > 0 ? `<span class="text-green-600 font-bold">+${h.scoreChange}</span>` : `<span class="text-red-600 font-bold">${h.scoreChange}</span>`;
+      let badgeClass = h.scoreChange > 0 ? 'badge-success' : 'badge-danger';
+      
+      html += `
+        <tr>
+          <td>${h.date}</td>
+          <td><span class="badge ${badgeClass}">${h.type}</span></td>
+          <td>${h.details}</td>
+          <td>${scoreText}</td>
+          <td>${h.teacherName}</td>
+        </tr>
+      `;
+    });
+    if(data.history.length === 0) html = '<tr><td colspan="5" class="text-center">ไม่พบประวัติพฤติกรรม</td></tr>';
+    $('#r_historyTable').html(html);
+  }
+
+  // ==================== USERS (ADMIN) ====================
+  function loadUsers() {
+    showLoading();
+    if (typeof google !== 'undefined') {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoading();
+          renderUsers(res);
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        })
+        .getUsers();
+    } else {
+      hideLoading();
+      renderUsers([{id:'1', name:'ครูสมศรี', username:'somsri'}]);
+    }
+  }
+
+  function renderUsers(users) {
+    let html = '';
+    users.forEach(u => {
+      html += `
+        <tr>
+          <td>${u.name}</td>
+          <td>${u.username}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-danger rounded" onclick="deleteUser('${u.id}', '${u.name}')"><i class="fas fa-trash"></i> ลบ</button>
+          </td>
+        </tr>
+      `;
+    });
+    if(users.length === 0) html = '<tr><td colspan="3" class="text-center">ไม่มีข้อมูล</td></tr>';
+    $('#usersTableBody').html(html);
+  }
+
+  function openAddUserModal() {
+    $('#userForm')[0].reset();
+    $('#userModal').modal('show');
+  }
+
+  function saveUser(e) {
+    e.preventDefault();
+    const user = {
+      name: $('#u_name').val(),
+      username: $('#u_username').val(),
+      password: $('#u_password').val() // Note: In production, consider hashing
+    };
+
+    $('#userModal').modal('hide');
+    showLoading();
+
+    if (typeof google !== 'undefined') {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if(res.success) {
+            Swal.fire('สำเร็จ', res.message, 'success');
+            loadUsers();
+          } else {
+            hideLoading();
+            Swal.fire('ข้อผิดพลาด', res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          hideLoading();
+          Swal.fire('ข้อผิดพลาด', err.message, 'error');
+        })
+        .addUser(user);
+    } else {
+      hideLoading();
+      Swal.fire('สำเร็จ', 'บันทึกสำเร็จ (โหมดทดสอบ)', 'success');
+    }
+  }
+
+  function deleteUser(id, name) {
+    if(currentUser && currentUser.id === id) {
+      Swal.fire('ข้อผิดพลาด', 'ไม่สามารถลบบัญชีที่กำลังใช้งานได้', 'error');
+      return;
+    }
+
+    Swal.fire({
+      title: `ลบผู้ใช้งาน ${name}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'ลบเลย',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        showLoading();
+        if (typeof google !== 'undefined') {
+          google.script.run
+            .withSuccessHandler(function(res) {
+              if(res.success) {
+                Swal.fire('สำเร็จ', res.message, 'success');
+                loadUsers();
+              } else {
+                hideLoading();
+                Swal.fire('ข้อผิดพลาด', res.message, 'error');
+              }
+            })
+            .withFailureHandler(function(err) {
+              hideLoading();
+              Swal.fire('ข้อผิดพลาด', err.message, 'error');
+            })
+            .deleteUser(id);
+        } else {
+          hideLoading();
+          Swal.fire('สำเร็จ', 'ลบสำเร็จ (โหมดทดสอบ)', 'success');
+        }
+      }
+    });
+  }
+</script>
