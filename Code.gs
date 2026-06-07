@@ -1,7 +1,3 @@
-// ==========================================
-// การตั้งค่า
-// ==========================================
-// แก้ไข YOUR_SPREADSHEET_ID ให้ตรงกับ ID ของ Google Sheets ที่คุณสร้าง
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet() ? SpreadsheetApp.getActiveSpreadsheet().getId() : "1vT3Dl_e_53MSEE0N9l_OkKVQCgYBRkEfWK82feYOT-w";
 
 // ฟังก์ชันช่วยดึงข้อมูลชีต ถ้าไม่มีให้สร้างใหม่พร้อมหัวตาราง (Headers)
@@ -45,7 +41,7 @@ function getOrCreateSheet(sheetName) {
 }
 
 function doGet(e) {
-  var template = HtmlService.createTemplateFromFile('Index');
+  var template = HtmlService.createTemplateFromFile('index');
   return template.evaluate()
     .setTitle('ระบบบันทึกและติดตามพฤติกรรมนักเรียน')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
