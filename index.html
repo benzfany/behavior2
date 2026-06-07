@@ -104,10 +104,11 @@
     <!-- Sidebar -->
     <aside class="main-sidebar sidebar-dark-primary elevation-4">
       <a href="#" class="brand-link bg-blue-600 border-b-0" onclick="showView('dashboard')">
-        <i class="fas fa-shield-alt brand-image mt-1 ml-3 text-white text-xl"></i>
-        <span class="brand-text font-light text-white ml-2 font-medium">Behavior System</span>
+        <img src="https://lh3.googleusercontent.com/d/1ihU2C7KCCimmkxrgDxkhHqwOfUZ0qmH3" alt="โลโก้โรงเรียน" class="mx-auto max-w-[40%] h-auto" crossorigin="anonymous">
+        <span class="brand-text font-light text-white ml-4 font-medium">ระบบบันทึกและติดตาม</span>
+        <br>
+        <span class="brand-text font-light text-white ml-5 font-medium">พฤติกรรมนักเรียน</span>
       </a>
-
       <div class="sidebar">
         <nav class="mt-4">
           <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
@@ -135,13 +136,7 @@
                 <p>รายงาน</p>
               </a>
             </li>
-            <li class="nav-header text-xs text-gray-400 mt-2">ผู้ดูแลระบบ</li>
-            <li class="nav-item">
-              <a href="#" class="nav-link" id="nav-users" onclick="showView('users')">
-                <i class="nav-icon fas fa-users-cog"></i>
-                <p>จัดการผู้ใช้งาน</p>
-              </a>
-            </li>
+          
           </ul>
         </nav>
       </div>
@@ -362,28 +357,27 @@
         <!-- Report Container (Hidden initially) -->
         <div id="reportContainer" class="hidden mt-4">
           <div class="card shadow-sm border-0 rounded-lg">
-            <div class="card-header bg-white border-b border-gray-100 py-3 flex justify-between items-center">
-              <h3 class="card-title font-medium text-gray-700">ผลการค้นหา</h3>
-              <button class="btn btn-sm btn-outline-secondary no-print" onclick="window.print()">
-                <i class="fas fa-print mr-1"></i> พิมพ์รายงาน
-              </button>
-            </div>
+            <div class="d-flex justify-content-end">
+    <button class="btn btn-sm btn-outline-secondary no-print" onclick="window.print()">
+        <i class="fas fa-print mr-1"></i> พิมพ์รายงาน
+    </button>
+</div>
             <div class="card-body print-area" id="printArea">
-              
+              <img src="https://lh3.googleusercontent.com/d/1ihU2C7KCCimmkxrgDxkhHqwOfUZ0qmH3" alt="โลโก้โรงเรียน" class="mx-auto max-w-[10%] h-auto" crossorigin="anonymous">
               <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold">รายงานประวัติพฤติกรรมนักเรียน</h2>
+                <h2 class="text-2xl font-bold">ผลรายงานประวัติพฤติกรรมนักเรียน</h2>
               </div>
               
-              <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-100">
-                <div class="row text-lg">
-                  <div class="col-md-6 mb-2"><strong>รหัสนักเรียน:</strong> <span id="r_studentId">-</span></div>
-                  <div class="col-md-6 mb-2"><strong>ชื่อ-สกุล:</strong> <span id="r_studentName">-</span></div>
-                  <div class="col-md-6 mb-2"><strong>ชั้นเรียน:</strong> <span id="r_studentClass">-</span></div>
-                  <div class="col-md-6 mb-2"><strong>คะแนนพฤติกรรมปัจจุบัน:</strong> <span id="r_studentScore" class="font-bold text-xl">-</span></div>
-                </div>
-              </div>
-
-              <h4 class="font-semibold text-lg mb-3">ประวัติการบันทึก</h4>
+              <table style="width:100%; border:none;">
+<tr style="font-size:20px;">
+    <td><strong>รหัสนักเรียน:</strong> <span id="r_studentId"></span></td>
+    <td><strong>ชื่อ-สกุล:</strong> <span id="r_studentName"></span></td>
+    <td><strong>ชั้นเรียน:</strong> <span id="r_studentClass"></span></td>
+    <td><strong>คะแนน:</strong> <span id="r_studentScore"></span></td>
+</tr>
+</table>
+              <hr><br>
+              <h3 class="font-semibold text-lg mb-3">ประวัติการบันทึก</h4>
               <div class="table-responsive">
                 <table class="table table-bordered">
                   <thead class="bg-gray-100">
@@ -399,6 +393,28 @@
                     <!-- JS populate -->
                   </tbody>
                 </table>
+              <br><br>  
+            <div class="flex justify-between items-center w-full printable-row">
+  
+  <div class="text-center flex-1">
+    <p>ลงชื่อ ...........................................</p>
+    <p class="mt-2">(นายธรรมรัตน์ เสลาคุณ)</p>
+    <p class="text-sm">หัวหน้าฝ่ายบริหารทั่วไป</p>
+  </div>
+
+  <div class="text-center flex-1">
+    <p>ลงชื่อ ...........................................</p>
+    <p class="mt-2">(นางสาวนันทพร ใจขาวผ่อง)</p>
+    <p class="text-sm">รองผู้อำนวยการโรงเรียน</p>
+  </div>
+
+  <div class="text-center flex-1">
+    <p>ลงชื่อ ...........................................</p>
+    <p class="mt-2">(นายธงชัย สังขวิภาส)</p>
+    <p class="text-sm">ผู้อำนวยการโรงเรียน</p>
+  </div>
+ </div>
+  </div>
               </div>
             </div>
           </div>
@@ -406,7 +422,7 @@
       </div>
 
       <!-- USERS VIEW -->
-      <div id="view-users" class="page-view hidden">
+      <!-- <div id="view-users" class="page-view hidden">
         <div class="content-header px-0 flex justify-between items-center mb-4">
           <h1 class="text-2xl font-semibold text-gray-800">จัดการข้อมูลผู้ใช้งาน (ครู)</h1>
           <button class="btn btn-primary shadow-sm rounded-md" onclick="openAddUserModal()">
@@ -431,7 +447,6 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -472,7 +487,7 @@
   </div>
 
   <!-- Add User Modal -->
-  <div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <!--<div class="modal fade" id="userModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content rounded-lg border-0 shadow-lg">
         <div class="modal-header bg-gray-50 border-b border-gray-200">
@@ -503,7 +518,7 @@
         </form>
       </div>
     </div>
-  </div>
+  </div>-->
 
   <!-- Loading Overlay -->
   <div id="loadingOverlay" class="loading-overlay hidden">
